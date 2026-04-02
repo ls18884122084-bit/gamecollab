@@ -1,31 +1,86 @@
 # GameColla
 
-游戏协作项目
+**游戏协作平台** - 基于 Git 的多人实时协作编辑系统
 
-## 项目说明
+## ✨ 功能特性
 
-本项目用于游戏开发协作。
+- 🔐 用户认证系统（注册/登录）
+- 📁 文件管理与版本控制（基于 Git）
+- 👥 多人实时协作编辑
+- 🔑 权限管理（Owner / Admin / Write / Read）
+- 💬 实时在线状态显示
+- 📝 代码编辑器（Monaco Editor）
+- 🔄 文件历史与 Diff 对比
 
-## 开始使用
+## 🏗️ 技术栈
 
-\\\ash
-# 克隆仓库
-git clone <仓库地址>
+### 后端
+- **运行时**: Node.js 18+
+- **框架**: Express.js
+- **数据库**: PostgreSQL 16
+- **缓存**: Redis 7
+- **WebSocket**: Socket.IO
+- **Git 操作**: simple-git
 
-# 进入目录
-cd gamecolla
+### 前端
+- **框架**: React 18
+- **构建工具**: Vite
+- **路由**: React Router v6
+- **状态管理**: Zustand
+- **样式**: Tailwind CSS
+- **编辑器**: Monaco Editor
+- **图标**: Lucide React
 
-# 安装依赖
+## 📦 快速开始
+
+### 前置要求
+
+- Node.js >= 18
+- PostgreSQL >= 14
+- Redis >= 6
+- Git
+
+### 安装依赖
+
+```bash
+# 后端
+cd backend
 npm install
+cp .env.example .env
 
-# 启动项目
-npm start
-\\\
+# 前端
+cd frontend
+npm install
+```
 
-## 贡献指南
+### 启动服务
 
-欢迎提交 Issue 和 Pull Request。
+```bash
+# 后端（端口 3000）
+cd backend && npm run dev
 
-## 许可证
+# 前端（端口 5173）
+cd frontend && npm run dev
+```
 
-MIT
+访问 http://localhost:5173
+
+## 📁 项目结构
+
+```
+gamecolla/
+├── backend/                 # 后端服务
+├── frontend/                # 前端应用
+├── shared/                  # 共享代码
+├── docs/                    # 项目文档
+├── docker-compose.yml
+└── README.md
+```
+
+## 📄 许可证
+
+MIT License
+
+## 👨‍💻 作者
+
+victoliang

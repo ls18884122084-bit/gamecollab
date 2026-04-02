@@ -11,3 +11,19 @@ build/
 *.swo
 .cache/
 coverage/
+
+# 后端特定
+backend/logs/
+backend/repositories/
+backend/.env
+
+# 前端特定
+frontend/dist/
+frontend/.env
+
+# 数据库
+*.db
+*.sqlite
+
+# Docker
+.docker/
