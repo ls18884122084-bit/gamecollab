@@ -8,18 +8,12 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
+    // 仅保留 Console 输出（适配 Serverless / 无文件系统环境）
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
       )
-    }),
-    new winston.transports.File({ 
-      filename: 'logs/error.log', 
-      level: 'error' 
-    }),
-    new winston.transports.File({ 
-      filename: 'logs/combined.log' 
     })
   ]
 });

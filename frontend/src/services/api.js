@@ -1,9 +1,32 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+/**
+ * 自动检测 API 基础地址
+ * 
+ * 优先级:
+ * 1. VITE_API_BASE_URL（环境变量，构建时注入）
+ * 2. window.API_BASE_URL（运行时注入）
+ * 3. /api（同源代理 / Vite dev server proxy）
+ */
+function getBaseURL() {
+  // 构建时注入的环境变量
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // 运行时全局变量
+  if (typeof window !== 'undefined' && window.API_BASE_URL) {
+    return window.API_BASE_URL;
+  }
+
+  // 默认：相对路径（同源或代理）
+  return '/api';
+}
+
 // 创建 Axios 实例
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseURL(),
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'

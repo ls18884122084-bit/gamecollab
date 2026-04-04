@@ -22,14 +22,14 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || '*',
     credentials: true
   }
 });
 
 // 中间件
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: process.env.CORS_ORIGIN || '*',
   credentials: true
 }));
 app.use(express.json());
@@ -73,21 +73,40 @@ const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   try {
-    // 连接数据库
+    // 1. 连接数据库（必需）
     await sequelize.authenticate();
     logger.info('数据库连接成功');
+
+    // 同步数据库模型（生产环境建议用 migrate）
+    if (process.env.NODE_ENV !== 'production') {
+      await sequelize.sync({ alter: true });
+      logger.info('数据库模型同步完成');
+    } else {
+      await sequelize.sync();
+      logger.info('数据库模型同步完成（生产模式）');
+    }
     
-    // 同步数据库模型
-    await sequelize.sync({ alter: true });
-    logger.info('数据库模型同步完成');
+    // 2. 连接 Redis（非阻塞：失败仅警告，不阻止启动）
+    try {
+      await redisClient.connect();
+      logger.info('Redis 连接成功');
+    } catch (redisErr) {
+      logger.warn(`Redis 连接失败，将以无缓存模式运行: ${redisErr.message}`);
+      // 不抛出错误，继续启动
+    }
+
+    // 3. 检查 GitHub Token 配置
+    if (!process.env.GITHUB_TOKEN) {
+      logger.warn('GITHUB_TOKEN 未配置，Git 操作将无法使用！');
+    }
+    if (!process.env.GITHUB_USERNAME) {
+      logger.warn('GITHUB_USERNAME 未配置，Git 操作将无法使用！');
+    }
     
-    // 连接 Redis
-    await redisClient.connect();
-    logger.info('Redis 连接成功');
-    
-    // 启动 HTTP 服务器
+    // 4. 启动 HTTP 服务器
     httpServer.listen(PORT, () => {
-      logger.info(`服务器运行在 http://localhost:${PORT}`);
+      logger.info(`GameColla 后端服务运行在端口 ${PORT}`);
+      logger.info(`环境: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
     logger.error('启动失败:', error);
