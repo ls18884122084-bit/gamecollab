@@ -14,7 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

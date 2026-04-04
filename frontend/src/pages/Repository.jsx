@@ -17,7 +17,9 @@ import {
   ChevronDown,
   File as FileIcon,
   FolderPlus,
+  Users,
 } from 'lucide-react';
+import CollaboratorPanel from '../components/CollaboratorPanel';
 import toast from 'react-hot-toast';
 
 export default function Repository() {
@@ -41,6 +43,7 @@ export default function Repository() {
   const [newFilePath, setNewFilePath] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState(null);
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
 
   // 初始化加载
   useEffect(() => {
@@ -240,6 +243,15 @@ export default function Repository() {
               <Plus className="w-3.5 h-3.5" />
               <span>新建文件</span>
             </button>
+
+            {/* 协作管理 */}
+            <button
+              onClick={() => setShowCollabPanel(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>协作者</span>
+            </button>
           </div>
         </div>
       </div>
@@ -379,6 +391,13 @@ export default function Repository() {
           </button>
         </div>
       </Modal>
+
+      {/* 协作者管理面板 */}
+      <CollaboratorPanel
+        repoId={repoId}
+        isOpen={showCollabPanel}
+        onClose={() => setShowCollabPanel(false)}
+      />
     </div>
   );
 }

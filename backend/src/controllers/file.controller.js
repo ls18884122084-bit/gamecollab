@@ -1,20 +1,18 @@
 import Repository from '../models/Repository.js';
 import gitService from '../services/git.service.js';
 import logger from '../config/logger.js';
+import { requireRepoAccess } from '../middleware/rbac.js';
 
-// 获取文件树
+// 获取文件树（需要 read 权限）
 export const getFileTree = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { ref = 'HEAD', path = '' } = req.query;
-    const userId = req.userId;
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
+    // 权限已在中间件 requireRepoAccess('read') 验证
+    // req.repository 已由中间件附加
 
-    if (!repo) {
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -28,23 +26,18 @@ export const getFileTree = async (req, res) => {
   }
 };
 
-// 获取文件内容
+// 获取文件内容（需要 read 权限）
 export const getFileContent = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { filePath, ref = 'HEAD' } = req.query;
-    const userId = req.userId;
 
     if (!filePath) {
       return res.status(400).json({ error: '缺少文件路径参数' });
     }
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -66,12 +59,11 @@ export const getFileContent = async (req, res) => {
   }
 };
 
-// 保存文件
+// 保存文件（需要 write 权限）
 export const saveFile = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { filePath, content, message } = req.body;
-    const userId = req.userId;
 
     if (!filePath || content === undefined || !message) {
       return res.status(400).json({ 
@@ -79,12 +71,8 @@ export const saveFile = async (req, res) => {
       });
     }
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件 requireRepoAccess('write') 验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -101,8 +89,8 @@ export const saveFile = async (req, res) => {
     );
 
     // 更新仓库的更新时间
-    repo.changed('updatedAt', true);
-    await repo.save();
+    req.repository.changed('updatedAt', true);
+    await req.repository.save();
 
     logger.info(`文件保存成功: ${repoId}/${filePath}`);
 
@@ -116,12 +104,11 @@ export const saveFile = async (req, res) => {
   }
 };
 
-// 删除文件
+// 删除文件（需要 write 权限）
 export const deleteFile = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { filePath, message } = req.body;
-    const userId = req.userId;
 
     if (!filePath || !message) {
       return res.status(400).json({ 
@@ -129,12 +116,8 @@ export const deleteFile = async (req, res) => {
       });
     }
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -150,8 +133,8 @@ export const deleteFile = async (req, res) => {
     );
 
     // 更新仓库的更新时间
-    repo.changed('updatedAt', true);
-    await repo.save();
+    req.repository.changed('updatedAt', true);
+    await req.repository.save();
 
     logger.info(`文件删除成功: ${repoId}/${filePath}`);
 
@@ -165,19 +148,14 @@ export const deleteFile = async (req, res) => {
   }
 };
 
-// 获取提交历史
+// 获取提交历史（需要 read 权限）
 export const getCommitHistory = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { limit = 50, filePath } = req.query;
-    const userId = req.userId;
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -195,18 +173,13 @@ export const getCommitHistory = async (req, res) => {
   }
 };
 
-// 获取提交详情
+// 获取提交详情（需要 read 权限）
 export const getCommitDiff = async (req, res) => {
   try {
     const { repoId, commitHash } = req.params;
-    const userId = req.userId;
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -220,18 +193,13 @@ export const getCommitDiff = async (req, res) => {
   }
 };
 
-// 获取分支列表
+// 获取分支列表（需要 read 权限）
 export const getBranches = async (req, res) => {
   try {
     const { repoId } = req.params;
-    const userId = req.userId;
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -245,23 +213,18 @@ export const getBranches = async (req, res) => {
   }
 };
 
-// 创建分支
+// 创建分支（需要 write 权限）
 export const createBranch = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { branchName, startPoint = 'HEAD' } = req.body;
-    const userId = req.userId;
 
     if (!branchName) {
       return res.status(400).json({ error: '缺少分支名称' });
     }
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 
@@ -278,23 +241,18 @@ export const createBranch = async (req, res) => {
   }
 };
 
-// 切换分支
+// 切换分支（需要 write 权限）
 export const checkoutBranch = async (req, res) => {
   try {
     const { repoId } = req.params;
     const { branchName } = req.body;
-    const userId = req.userId;
 
     if (!branchName) {
       return res.status(400).json({ error: '缺少分支名称' });
     }
 
-    // 验证权限
-    const repo = await Repository.findOne({
-      where: { id: repoId, ownerId: userId }
-    });
-
-    if (!repo) {
+    // 权限已在中间件验证
+    if (!req.repository) {
       return res.status(404).json({ error: '仓库不存在' });
     }
 

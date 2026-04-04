@@ -96,4 +96,40 @@ export const fileAPI = {
   checkoutBranch: (repoId, data) => api.put(`/files/${repoId}/branches/checkout`, data),
 };
 
+// ========== 协作 API ==========
+export const collabAPI = {
+  // 搜索用户
+  searchUsers: (q) => api.get('/collab/search-users', { params: { q } }),
+  
+  // 邀请用户
+  invite: (repoId, data) => api.post(`/collab/repositories/${repoId}/invite`, data),
+  
+  // 申请加入
+  apply: (repoId) => api.post(`/collab/repositories/${repoId}/apply`),
+  
+  // 离开仓库
+  leave: (repoId) => api.post(`/collab/repositories/${repoId}/leave`),
+  
+  // 获取协作者列表
+  getCollaborators: (repoId) => api.get(`/collab/repositories/${repoId}/collaborators`),
+  
+  // 获取待审批申请（owner/admin）
+  getPendingApplications: (repoId) => api.get(`/collab/repositories/${repoId}/pending-applications`),
+  
+  // 获取我的待处理邀请/申请
+  getPendingInvitations: () => api.get('/collab/pending'),
+  
+  // 接受邀请/申请
+  accept: (id) => api.post(`/collab/${id}/accept`),
+  
+  // 拒绝邀请/申请
+  reject: (id) => api.post(`/collab/${id}/reject`),
+  
+  // 移除协作者
+  remove: (id) => api.delete(`/collab/${id}`),
+  
+  // 更新角色
+  updateRole: (id, role) => api.put(`/collab/${id}/role`, { role }),
+};
+
 export default api;
