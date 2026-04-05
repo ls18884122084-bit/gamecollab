@@ -48,8 +48,18 @@ export const searchUsers = async (req, res) => {
 export const inviteCollaborator = async (req, res) => {
   try {
     const { repoId } = req.params;
-    const { userId: targetUserId, role = 'read' } = req.body;
+    const { userId: targetUserId, role: rawRole = 'read' } = req.body;
     const inviterId = req.userId;
+
+    // Role 映射：兼容前端传 writer/reader → 数据库 write/read
+    const roleMap = { writer: 'write', reader: 'read', owner: 'owner', admin: 'admin' };
+    const role = roleMap[rawRole] || rawRole;
+
+    // 验证角色值合法
+    const validRoles = ['owner', 'admin', 'write', 'read'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: '无效的角色值，允许: owner, admin, write, read' });
+    }
 
     // 不能邀请自己
     if (targetUserId === inviterId) {
