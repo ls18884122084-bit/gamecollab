@@ -26,10 +26,10 @@ export const searchUsers = async (req, res) => {
         isActive: true,
         [Op.or]: [
           { username: { [Op.iLike]: `%${q}%` } },
-          { email: { [Op.iLike]: `%{q}%` } }
+          { email: { [Op.iLike]: `%${q}%` } }
         ]
       },
-      attributes: ['id', 'username', 'email', 'avatar', 'bio'],
+      attributes: ['id', 'username', 'email', 'avatar'],
       limit: 20
     });
 
