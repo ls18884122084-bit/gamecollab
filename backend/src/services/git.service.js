@@ -8,7 +8,7 @@
  *   GITHUB_TOKEN - GitHub Personal Access Token (需要 repo 权限)
  *   GITHUB_USERNAME - GitHub 用户名
  *   GIT_LOCAL_MODE - 设为 "1" 强制使用本地文件系统模式
- *   LOCAL_REPO_ROOT - 本地模式下的根目录 (默认: /tmp/gamecolla-repos)
+ *   LOCAL_REPO_ROOT - 本地模式下的根目录 (默认: /tmp/chaohai-repos)
  */
 
 import logger from '../config/logger.js';
@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME || '';
 const GITHUB_API_BASE = 'https://api.github.com';
-const REPO_PREFIX = 'gamecolla-';
+const REPO_PREFIX = 'chaohai-';
 
 // 本地模式配置
 const FORCE_LOCAL = process.env.GIT_LOCAL_MODE === '1' || !GITHUB_TOKEN;
@@ -52,7 +52,7 @@ class GitService {
       const timeout = setTimeout(() => controller.abort(), 3000);
       const res = await fetch(GITHUB_API_BASE, {
         signal: controller.signal,
-        headers: { 'User-Agent': 'GameColla-Backend' }
+        headers: { 'User-Agent': 'Chaohai-Workbench' }
       });
       clearTimeout(timeout);
       this._githubAvailable = res.ok;
@@ -93,7 +93,7 @@ class GitService {
     return {
       'Authorization': `token ${GITHUB_TOKEN}`,
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'GameColla-Backend'
+      'User-Agent': 'Chaohai-Workbench'
     };
   }
 
@@ -120,7 +120,7 @@ class GitService {
 
   /**
    * 根据 repoId 推算 GitHub 仓库名
-   * 格式: gamecolla-{uuid短格式}
+   * 格式: chaohai-{uuid短格式}
    */
   _getRepoName(repoId) {
     return `${REPO_PREFIX}${repoId.replace(/-/g, '')}`;
@@ -165,7 +165,7 @@ class GitService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: repoName,
-          description: 'GameColla 项目仓库',
+          description: '超核AI工作台 项目',
           private: true,
           auto_init: false,
           has_issues: false,

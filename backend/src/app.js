@@ -105,7 +105,7 @@ async function startServer() {
     
     // 4. 启动 HTTP 服务器
     httpServer.listen(PORT, () => {
-      logger.info(`GameColla 后端服务运行在端口 ${PORT}`);
+      logger.info(`超核AI工作台 后端服务运行在端口 ${PORT}`);
       logger.info(`环境: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {

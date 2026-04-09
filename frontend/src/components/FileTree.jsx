@@ -132,7 +132,7 @@ export default function FileTree({ files = [], onFileClick, selectedFile }) {
   if (children.length === 0) {
     return (
       <div className="p-4 text-gray-500 text-sm text-center">
-        仓库为空，开始添加文件吧
+        项目为空，开始添加文件吧
       </div>
     );
   }

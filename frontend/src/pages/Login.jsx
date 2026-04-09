@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { GitBranch, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Brain, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Login() {
@@ -36,10 +36,10 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500 rounded-2xl mb-4">
-            <GitBranch className="w-8 h-8 text-white" />
+            <Brain className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">GameColla</h1>
-          <p className="text-gray-400 mt-2">游戏协作平台</p>
+          <h1 className="text-3xl font-bold text-white">超核AI工作台</h1>
+          <p className="text-gray-400 mt-2">AI管家训练全链路平台</p>
         </div>
 
         {/* 登录表单 */}

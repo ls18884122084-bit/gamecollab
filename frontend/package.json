@@ -1,5 +1,5 @@
 {
-  "name": "gamecolla-frontend",
+  "name": "chaohai-ai-workbench",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -16,6 +16,8 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.20.1",
     "socket.io-client": "^4.6.2",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
     "yjs": "^13.6.30",
     "zustand": "^4.4.7"
   },

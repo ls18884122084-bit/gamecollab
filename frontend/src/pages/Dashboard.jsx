@@ -8,13 +8,13 @@ import EmptyState from '../components/EmptyState';
 import {
   Plus,
   Search,
-  GitBranch,
   Lock,
   Globe,
   Clock,
   ChevronLeft,
   ChevronRight,
-  FolderGit2,
+  FolderOpen,
+  BookOpen,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -33,7 +33,7 @@ export default function Dashboard() {
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // 创建仓库表单
+  // 创建项目表单
   const [newRepo, setNewRepo] = useState({
     name: '',
     description: '',
@@ -57,13 +57,13 @@ export default function Dashboard() {
   const handleCreateRepo = async (e) => {
     e.preventDefault();
     if (!newRepo.name.trim()) {
-      toast.error('请输入仓库名称');
+      toast.error('请输入项目名称');
       return;
     }
     setCreating(true);
     try {
       const repo = await createRepo(newRepo);
-      toast.success('仓库创建成功！');
+      toast.success('项目创建成功！');
       setShowCreateModal(false);
       setNewRepo({ name: '', description: '', isPrivate: true });
       navigate(`/repo/${repo.id}`);
@@ -75,10 +75,10 @@ export default function Dashboard() {
   };
 
   const handleDeleteRepo = async (id, name) => {
-    if (!window.confirm(`确定要删除仓库「${name}」吗？此操作不可恢复。`)) return;
+    if (!window.confirm(`确定要删除项目「${name}」吗？此操作不可恢复。`)) return;
     try {
       await deleteRepo(id);
-      toast.success('仓库已删除');
+      toast.success('项目已删除');
     } catch (error) {
       toast.error('删除失败');
     }
@@ -108,9 +108,9 @@ export default function Dashboard() {
         {/* 顶部区域 */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">我的仓库</h1>
+            <h1 className="text-2xl font-bold text-gray-900">我的项目</h1>
             <p className="text-sm text-gray-500 mt-1">
-              管理你的游戏项目和代码仓库
+              管理知识库、训练配置和 AI 管家项目
             </p>
           </div>
           <button
@@ -118,8 +118,48 @@ export default function Dashboard() {
             className="inline-flex items-center space-x-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span>新建仓库</span>
+            <span>新建项目</span>
           </button>
+        </div>
+
+        {/* 快捷入口卡片 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div
+            onClick={() => { setSearch('知识库'); }}
+            className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-blue-900">知识库</h3>
+            </div>
+            <p className="text-xs text-blue-600">管理训练语料、FAQ、业务问答对</p>
+          </div>
+          <div
+            onClick={() => { setSearch('训练'); }}
+            className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-5 hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                <FolderOpen className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-purple-900">训练工坊</h3>
+            </div>
+            <p className="text-xs text-purple-600">Prompt 模板、LoRA 配置、训练记录</p>
+          </div>
+          <div
+            onClick={() => { setSearch('Agent'); }}
+            className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-5 hover:shadow-md transition-all cursor-pointer"
+          >
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                <FolderOpen className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-green-900">Agent 管理</h3>
+            </div>
+            <p className="text-xs text-green-600">管家实例、对话测试、发布管理</p>
+          </div>
         </div>
 
         {/* 搜索栏 */}
@@ -129,22 +169,22 @@ export default function Dashboard() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索仓库..."
+            placeholder="搜索项目..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
           />
         </div>
 
-        {/* 仓库列表 */}
+        {/* 项目列表 */}
         {loading ? (
           <Loading />
         ) : repositories.length === 0 ? (
           <EmptyState
-            icon={FolderGit2}
-            title={search ? '没有找到匹配的仓库' : '还没有仓库'}
+            icon={FolderOpen}
+            title={search ? '没有找到匹配的项目' : '还没有项目'}
             description={
               search
                 ? '试试其他关键词'
-                : '创建你的第一个仓库，开始游戏协作之旅'
+                : '创建你的第一个项目，开始 AI 管家训练之旅'
             }
             action={
               !search && (
@@ -153,7 +193,7 @@ export default function Dashboard() {
                   className="inline-flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>新建仓库</span>
+                  <span>新建项目</span>
                 </button>
               )
             }
@@ -169,7 +209,7 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-2">
-                      <GitBranch className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <h3 className="text-lg font-semibold text-blue-600 group-hover:text-blue-700 truncate">
                         {repo.name}
                       </h3>
@@ -243,16 +283,16 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* 创建仓库模态框 */}
+      {/* 创建项目模态框 */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="新建仓库"
+        title="新建项目"
       >
         <form onSubmit={handleCreateRepo}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              仓库名称 <span className="text-red-500">*</span>
+              项目名称 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -260,7 +300,7 @@ export default function Dashboard() {
               onChange={(e) =>
                 setNewRepo({ ...newRepo, name: e.target.value })
               }
-              placeholder="例如: my-game-project"
+              placeholder="例如: 超核会员FAQ知识库"
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               autoFocus
             />
@@ -275,7 +315,7 @@ export default function Dashboard() {
               onChange={(e) =>
                 setNewRepo({ ...newRepo, description: e.target.value })
               }
-              placeholder="简单描述一下这个项目..."
+              placeholder="简单描述一下这个项目的用途..."
               rows={3}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
             />
@@ -294,10 +334,10 @@ export default function Dashboard() {
               <div>
                 <span className="text-sm font-medium text-gray-700 flex items-center space-x-1">
                   <Lock className="w-3.5 h-3.5" />
-                  <span>私有仓库</span>
+                  <span>私有项目</span>
                 </span>
                 <p className="text-xs text-gray-400">
-                  仅你和协作者可以访问
+                  仅你和团队成员可以访问
                 </p>
               </div>
             </label>
@@ -316,7 +356,7 @@ export default function Dashboard() {
               disabled={creating}
               className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              {creating ? '创建中...' : '创建仓库'}
+              {creating ? '创建中...' : '创建项目'}
             </button>
           </div>
         </form>

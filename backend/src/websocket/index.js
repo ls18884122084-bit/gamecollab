@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Collaborator from '../models/Collaborator.js';
+import Repository from '../models/Repository.js';
 import logger from '../config/logger.js';
 
 /**
- * GameColla WebSocket 实时协作引擎
+ * 超核AI工作台 WebSocket 实时协作引擎
  * 
  * 架构设计：
  * - Room: 按 repoId+filePath 划分房间（如 repo_abc/src/main.js）
@@ -100,7 +101,13 @@ async function authenticateSocket(token) {
 }
 
 async function checkCollaborationAccess(userId, repoId) {
-  // 检查是否是 owner 或已接受的协作者
+  // 先检查是否是 owner（owner 不在 collaborator 表中）
+  const repo = await Repository.findByPk(repoId);
+  if (repo && repo.ownerId === userId) {
+    return 'owner'; // owner 自动拥有完全权限
+  }
+
+  // 再检查是否是已接受的协作者
   const collab = await Collaborator.findOne({
     where: {
       userId,
@@ -246,16 +253,29 @@ export function setupWebSocket(io) {
 
     // ========== 内容同步（CRDT）==========
     socket.on('content-update', ({ update }) => {
-      if (!currentRoom || !Buffer.isBuffer(update)) return;
+      logger.info(`[WS-DEBUG] content-update received: roomKey=${currentRoomKey}, updateType=${typeof update}, isArray=${Array.isArray(update)}, isBuf=${Buffer.isBuffer(update)}`);
+      if (!currentRoom) { logger.warn('[WS-DEBUG] content-update: no currentRoom!'); return; }
+      if (!update) { logger.warn('[WS-DEBUG] content-update: no update data!'); return; }
+
+      // 兼容多种二进制格式: Buffer, ArrayBuffer, Uint8Array, Array
+      let updateBuffer = update;
+      if (!Buffer.isBuffer(update)) {
+        if (update instanceof Uint8Array || update instanceof ArrayBuffer || Array.isArray(update)) {
+          updateBuffer = Buffer.from(update);
+        } else {
+          logger.warn(`content-update 收到非二进制数据: ${typeof update}`);
+          return;
+        }
+      }
 
       // 更新文档状态快照
-      currentRoom.documentState = update;
+      currentRoom.documentState = updateBuffer;
       currentRoom.lastActivity = Date.now();
 
       // 广播给房间内除发送者以外的所有人
       socket.to(currentRoomKey).emit('content-update', {
         userId: user.id,
-        update,
+        update: updateBuffer,
       });
     });
 
@@ -280,15 +300,25 @@ export function setupWebSocket(io) {
 
     // 接收客户端的完整同步数据（第一个加入的用户）
     socket.on('sync-full', ({ update }) => {
-      if (!currentRoom || !Buffer.isBuffer(update)) return;
+      if (!currentRoom || !update) return;
 
-      currentRoom.documentState = update;
+      let updateBuffer = update;
+      if (!Buffer.isBuffer(update)) {
+        if (update instanceof Uint8Array || ArrayBuffer.isView(update)) {
+          updateBuffer = Buffer.from(update);
+        } else {
+          return;
+        }
+      }
+
+      currentRoom.documentState = updateBuffer;
       currentRoom.lastActivity = Date.now();
     });
 
     // ========== 光标/选区同步 ==========
     socket.on('cursor-update', ({ position, selection }) => {
-      if (!currentRoom) return;
+      logger.info(`[WS-DEBUG] cursor-update received: roomKey=${currentRoomKey}, pos=${JSON.stringify(position)}`);
+      if (!currentRoom) { logger.warn('[WS-DEBUG] cursor-update: no currentRoom!'); return; }
 
       // 更新本地记录
       const userData = currentRoom.users.get(socket.id);
@@ -329,5 +359,5 @@ export function setupWebSocket(io) {
     }
   }, 10 * 60 * 1000);
 
-  logger.info('GameColla WebSocket 协作引擎已启动');
+  logger.info('超核AI工作台 WebSocket 协作引擎已启动');
 }

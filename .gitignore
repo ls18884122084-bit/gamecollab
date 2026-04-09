@@ -12,6 +12,13 @@ build/
 .cache/
 coverage/
 
+# 根目录临时脚本和日志（不改代码时产生）
+/*.js
+/*.bat
+/*.txt
+/*.sql
+!/scripts/
+
 # 后端特定
 backend/logs/
 backend/repositories/

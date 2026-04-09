@@ -250,7 +250,7 @@ export default function Repository() {
               className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
             >
               <Users className="w-3.5 h-3.5" />
-              <span>协作者</span>
+              <span>成员</span>
             </button>
           </div>
         </div>

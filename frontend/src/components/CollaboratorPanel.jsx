@@ -203,11 +203,11 @@ export default function CollaboratorPanel({ repoId, isOpen, onClose }) {
           <section>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
               <Users className="w-4 h-4 mr-1.5" />
-              协作者 ({collaborators.filter(c => c.status === 'accepted').length})
+              成员 ({collaborators.filter(c => c.status === 'accepted').length})
             </h3>
             
             {collaborators.filter(c => c.status === 'accepted').length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">暂无协作者</p>
+              <p className="text-sm text-gray-400 py-4 text-center">暂无成员</p>
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {collaborators.filter(c => c.status === 'accepted').map((collab, idx) => {

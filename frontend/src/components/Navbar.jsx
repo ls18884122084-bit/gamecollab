@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { LogOut, User, GitBranch } from 'lucide-react';
+import { LogOut, User, Brain } from 'lucide-react';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -18,8 +18,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2">
-            <GitBranch className="w-6 h-6 text-green-400" />
-            <span className="text-xl font-bold">GameColla</span>
+            <Brain className="w-6 h-6 text-green-400" />
+            <span className="text-xl font-bold">超核AI工作台</span>
           </Link>
 
           {/* 右侧操作区 */}

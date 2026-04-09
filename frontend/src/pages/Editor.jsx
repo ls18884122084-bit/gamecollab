@@ -15,7 +15,6 @@ import {
   Users,
   Wifi,
   WifiOff,
-  Undo2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,41 +26,14 @@ function getLanguage(filePath) {
   if (!filePath) return 'plaintext';
   const ext = filePath.split('.').pop().toLowerCase();
   const languageMap = {
-    js: 'javascript',
-    jsx: 'javascript',
-    ts: 'typescript',
-    tsx: 'typescript',
-    py: 'python',
-    json: 'json',
-    md: 'markdown',
-    html: 'html',
-    htm: 'html',
-    css: 'css',
-    scss: 'scss',
-    less: 'less',
-    xml: 'xml',
-    yml: 'yaml',
-    yaml: 'yaml',
-    sh: 'shell',
-    bash: 'shell',
-    sql: 'sql',
-    java: 'java',
-    c: 'c',
-    cpp: 'cpp',
-    cs: 'csharp',
-    go: 'go',
-    rs: 'rust',
-    rb: 'ruby',
-    php: 'php',
-    lua: 'lua',
-    swift: 'swift',
-    kt: 'kotlin',
-    dart: 'dart',
-    toml: 'ini',
-    ini: 'ini',
-    env: 'ini',
-    dockerfile: 'dockerfile',
-    makefile: 'makefile',
+    js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
+    py: 'python', json: 'json', md: 'markdown', html: 'html', htm: 'html',
+    css: 'css', scss: 'scss', less: 'less', xml: 'xml',
+    yml: 'yaml', yaml: 'yaml', sh: 'shell', bash: 'shell',
+    sql: 'sql', java: 'java', c: 'c', cpp: 'cpp', cs: 'csharp',
+    go: 'go', rs: 'rust', rb: 'ruby', php: 'php', lua: 'lua',
+    swift: 'swift', kt: 'kotlin', dart: 'dart', toml: 'ini',
+    ini: 'ini', env: 'ini', dockerfile: 'dockerfile', makefile: 'makefile',
   };
   return languageMap[ext] || 'plaintext';
 }
@@ -74,23 +46,28 @@ export default function EditorPage() {
   const { content, loadFile, saveFile, saving } = useFileStore();
   const { token } = useAuthStore();
 
+  // 本地状态
   const [localContent, setLocalContent] = useState('');
   const [isModified, setIsModified] = useState(false);
   const [isNewFile, setIsNewFile] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Refs
   const editorRef = useRef(null);
-  const monacoRef = useRef(null); // Monaco Editor 实例引用
+  const monacoRef = useRef(null);
 
-  // 协作状态
-  const isRemoteUpdate = useRef(false); // 标记远端更新，防止循环
-  const hasSentInitialSync = useRef(false);
+  // 远程更新防循环标记
+  const isRemoteUpdate = useRef(false);
+  const hasSyncedInitial = useRef(false); // 是否已发送过初始同步
 
-  // ====== 协作 Hook ======
+  // ====== 协作 Hook (v2 - y-monaco 绑定) ======
   const {
     onlineUsers,
     cursors,
     isConnected,
-    sendLocalUpdate,
+    ydoc,
+    bindMonaco,
+    setMonacoRef,
     sendCursorUpdate,
     sendFullSync,
   } = useCollaboration({
@@ -98,7 +75,7 @@ export default function EditorPage() {
     filePath,
     token,
     onContentChange: (newContent) => {
-      // 远端内容变更 → 更新本地状态（不触发保存）
+      // 远端内容变更 → 更新本地状态（不触发 Monaco setValue）
       isRemoteUpdate.current = true;
       setLocalContent(newContent);
       setIsModified(false);
@@ -106,23 +83,21 @@ export default function EditorPage() {
     },
   });
 
-  // 更新光标颜色 CSS
-  useEffect(() => {
-    updateCursorColors(cursors);
-  }, [cursors]);
+  // 光标颜色更新
+  useEffect(() => { updateCursorColors(cursors); }, [cursors]);
 
   // 加载文件内容
   useEffect(() => {
     const load = async () => {
       setInitialLoading(true);
       try {
-        if (!currentRepo) {
-          await fetchRepo(repoId);
-        }
+        if (!currentRepo) await fetchRepo(repoId);
+        
         const fileContent = await loadFile(repoId, filePath);
-        // 只有在非远程更新时才设置本地内容
         if (!isRemoteUpdate.current) {
           setLocalContent(fileContent || '');
+          // 注意：Monaco 的 value 由 localContent 驱动
+          // y-monaco 会接管后续编辑，但初始加载仍需要 value
         }
         setIsNewFile(false);
       } catch (error) {
@@ -136,31 +111,27 @@ export default function EditorPage() {
         setInitialLoading(false);
       }
     };
-    if (repoId && filePath) {
-      load();
-    }
+    
+    if (repoId && filePath) { load(); }
   }, [repoId, filePath]);
 
-  // 编辑器内容变化（本地用户编辑）
+  // ====== 编辑器事件处理 ======
+
+  /**
+   * Monaco onChange — 仅用于追踪本地修改状态
+   * （CRDT 同步由 y-monaco binding 自动处理）
+   */
   const handleEditorChange = useCallback(
     (value) => {
       if (!isRemoteUpdate.current) {
         setLocalContent(value || '');
         setIsModified(value !== content);
-        
-        // 发送 CRDT 增量更新到服务端
-        // 注意：这里发送的是全量文本，实际 Yjs 应该用增量 Update
-        // 简化版：直接通过 content-update 发送更新通知
-        if (isConnected && editorRef.current) {
-          // 如果需要完整的 Yjs 集成，这里应该使用 ytext.toDelta() 或 Y.encodeStateAsUpdate()
-          sendCursorUpdate?.(getCursorPosition());
-        }
       }
     },
-    [content, isConnected]
+    [content]
   );
 
-  // 获取当前光标位置
+  /** 获取当前光标位置 */
   function getCursorPosition() {
     try {
       const ed = monacoRef.current;
@@ -168,7 +139,7 @@ export default function EditorPage() {
       const pos = ed.getPosition();
       const selection = ed.getSelection();
       const model = ed.getModel();
-      
+
       return {
         offset: model.getOffsetAt(pos),
         position: { lineNumber: pos.lineNumber, column: pos.column },
@@ -182,26 +153,49 @@ export default function EditorPage() {
     }
   }
 
-  // 光标移动事件
-  const handleCursorPositionChanged = useCallback((event) => {
-    if (isConnected && !isRemoteUpdate.current) {
-      const cursorData = getCursorPosition();
-      if (cursorData) {
-        sendCursorUpdate?.(cursorData.position, cursorData.selection);
+  /** 光标移动 → 发送到服务端 */
+  const handleCursorPositionChanged = useCallback(
+    (event) => {
+      if (isConnected && !isRemoteUpdate.current) {
+        const cursorData = getCursorPosition();
+        if (cursorData) {
+          sendCursorUpdate?.(cursorData.position, cursorData.selection);
+        }
       }
-    }
-  }, [isConnected]);
+    },
+    [isConnected, sendCursorUpdate]
+  );
 
-  // 编辑器挂载完成
-  const handleEditorMount = (editor, monaco) => {
-    editorRef.current = editor;
-    monacoRef.current = editor;
-    editor.focus();
+  /**
+   * Monaco 挂载完成 → 绑定 y-monaco + 设置 ref
+   */
+  const handleEditorMount = useCallback(
+    (editor, monaco) => {
+      editorRef.current = editor;
+      monacoRef.current = editor; // monacoRef 实际存的是 editor instance
 
-    // 监听光标位置变化
-    editor.onDidChangeCursorPosition(handleCursorPositionChanged);
-    editor.onDidChangeCursorSelection(handleCursorPositionChanged);
-  };
+      editor.focus();
+
+      // 监听光标位置变化
+      editor.onDidChangeCursorPosition(handleCursorPositionChanged);
+      editor.onDidChangeCursorSelection(handleCursorPositionChanged);
+
+      // 绑定 Yjs ↔ Monaco（核心！）
+      bindMonaco?.(editor, monaco);
+      
+      // 如果是第一个用户进入房间，绑定后立即发送完整同步
+      if (!hasSyncedInitial.current) {
+        hasSyncedInitial.current = true;
+        // 延迟一点等 y-monaco 将当前值写入 Yjs
+        setTimeout(() => {
+          sendFullSync?.();
+        }, 500);
+      }
+
+      logger('Monaco 已挂载，y-monaco 绑定完成');
+    },
+    [bindMonaco, handleCursorPositionChanged, sendFullSync]
+  );
 
   // 保存文件
   const handleSave = async () => {
@@ -212,7 +206,15 @@ export default function EditorPage() {
     if (!message) return;
 
     try {
-      await saveFile(repoId, filePath, localContent, message);
+      // 从 Yjs 获取最新内容（比 localContent 更准确）
+      let saveContent = localContent;
+      try {
+        if (ydoc) {
+          saveContent = ydoc.getText('monaco').toString();
+        }
+      } catch(e) { /* fallback */ }
+
+      await saveFile(repoId, filePath, saveContent, message);
       setIsModified(false);
       setIsNewFile(false);
       toast.success('保存成功！');
@@ -233,6 +235,7 @@ export default function EditorPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [localContent, content, isNewFile, filePath]);
 
+  // Loading 状态
   if (initialLoading) {
     return <Loading fullScreen text="加载编辑器..." />;
   }
@@ -244,27 +247,21 @@ export default function EditorPage() {
       {/* 工具栏 */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
         <div className="flex items-center space-x-3">
-          {/* 返回按钮 */}
           <button
             onClick={() => navigate(`/repo/${repoId}`)}
             className="p-1.5 hover:bg-gray-700 rounded transition-colors"
-            title="返回仓库"
+            title="返回项目"
           >
             <ArrowLeft className="w-4 h-4 text-gray-400" />
           </button>
 
-          {/* 文件信息 */}
           <div className="flex items-center space-x-2">
             <FileText className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-mono text-gray-300">
-              {currentRepo?.name || '仓库'}
-            </span>
+            <span className="text-sm font-mono text-gray-300">{currentRepo?.name || '仓库'}</span>
             <span className="text-gray-600">/</span>
             <span className="text-sm font-mono text-white">{filePath}</span>
             {isNewFile && (
-              <span className="px-1.5 py-0.5 text-xs bg-green-600 text-white rounded">
-                新建
-              </span>
+              <span className="px-1.5 py-0.5 text-xs bg-green-600 text-white rounded">新建</span>
             )}
             {isModified && (
               <span className="w-2 h-2 bg-yellow-400 rounded-full" title="未保存" />
@@ -286,12 +283,8 @@ export default function EditorPage() {
             <WifiOff className="w-3.5 h-3.5 text-gray-500" title="离线模式" />
           )}
 
-          {/* 语言标识 */}
-          <span className="text-xs text-gray-500 px-2 py-1 bg-gray-700 rounded">
-            {language}
-          </span>
+          <span className="text-xs text-gray-500 px-2 py-1 bg-gray-700 rounded">{language}</span>
 
-          {/* 保存按钮 */}
           <button
             onClick={handleSave}
             disabled={saving}
@@ -302,16 +295,9 @@ export default function EditorPage() {
             }`}
           >
             {saving ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>保存中...</span>
-              </>
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>保存中...</span></>
             ) : (
-              <>
-                <Save className="w-3.5 h-3.5" />
-                <span>保存</span>
-                <kbd className="text-xs opacity-60 ml-1">Ctrl+S</kbd>
-              </>
+              <><Save className="w-3.5 h-3.5" /><span>保存</span><kbd className="text-xs opacity-60 ml-1">Ctrl+S</kbd></>
             )}
           </button>
         </div>
@@ -341,10 +327,7 @@ export default function EditorPage() {
               formatOnType: true,
               automaticLayout: true,
               bracketPairColorization: { enabled: true },
-              guides: {
-                bracketPairs: true,
-                indentation: true,
-              },
+              guides: { bracketPairs: true, indentation: true },
               padding: { top: 16 },
               smoothScrolling: true,
               cursorBlinking: 'smooth',
@@ -369,16 +352,16 @@ export default function EditorPage() {
               <div
                 key={u.id}
                 className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg"
-                title={`${u.username} - ${isConnected ? '在线' : '离线'}`}
+                title={`${u.username || u.name || '?'} - 在线`}
               >
                 <div
                   className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-white"
                   style={{ backgroundColor: u.color }}
                 >
-                  {u.username[0]?.toUpperCase() || '?'}
+                  {(u.username || u.name || '?')[0]?.toUpperCase()}
                 </div>
                 <span className="text-xs text-gray-300 max-w-[80px] truncate">
-                  {u.username}
+                  {u.username || u.name || '?'}
                 </span>
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
               </div>
@@ -388,4 +371,8 @@ export default function EditorPage() {
       </div>
     </div>
   );
+}
+
+function logger(msg) {
+  console.log(`[Editor] ${msg}`);
 }
